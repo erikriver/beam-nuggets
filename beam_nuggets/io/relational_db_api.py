@@ -265,7 +265,7 @@ class SqlAlchemyDB(object):
                 )
                 return conn
 
-            engine = create_engine(self._source.url, creator=getconn)
+            engine = create_engine("postgresql+pg8000://", creator=getconn)
 
         self._SessionClass = sessionmaker(bind=engine)
         self._session = None  # will be set in self.start_session()
