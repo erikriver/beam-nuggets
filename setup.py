@@ -8,6 +8,7 @@ REQUIRED_PACKAGES = [
     'apache-beam>=2.8.0,<3.0.0',
     'SQLAlchemy>=1.4.0,<2.0.0',
     'sqlalchemy-utils>=0.37.0,<1.0.0',
+    'cloud-sql-python-connector[pg8000]',
     # Below are drivers for connection to specific DBs
     'pg8000>=1.16.6,<2.0.0',
     'PyMySQL>=0.9.3,<2.0.0',

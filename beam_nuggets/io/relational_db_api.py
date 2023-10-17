@@ -23,6 +23,8 @@ from sqlalchemy_utils import database_exists, create_database
 
 from beam_nuggets.compat import iteritems
 
+from google.cloud.sql.connector import Connector
+
 
 class SourceConfiguration(object):
     """Holds parameters for accessing a database.
@@ -103,6 +105,7 @@ class SourceConfiguration(object):
         database=None,
         username=None,
         password=None,
+        connection_name=None,
         create_if_missing=False,
     ):
         self.url = URL(
@@ -114,7 +117,11 @@ class SourceConfiguration(object):
             database=database
         )
         self.create_if_missing = create_if_missing
-
+        self.connection_name = connection_name
+        self.drivername = drivername
+        self.username = username
+        self.password = password
+        self.database = database
 
 class TableConfiguration(object):
     """Holds parameters for a database table.
@@ -246,7 +253,21 @@ class SqlAlchemyDB(object):
     def __init__(self, source_config):
         self._source = source_config
 
-        self._SessionClass = sessionmaker(bind=create_engine(self._source.url))
+        engine = create_engine(self._source.url)
+        if source_config.connection_name:
+            def getconn():
+                conn = connector.connect(
+                    source_config.connection_name,
+                    self._source.drivername,
+                    user=self._source.username,
+                    password=self._source.password,
+                    db=self._source.database
+                )
+                return conn
+
+            engine = create_engine(self._source.url, creator=getconn)
+
+        self._SessionClass = sessionmaker(bind=engine)
         self._session = None  # will be set in self.start_session()
 
         self._name_to_table = {}  # tables metadata cache
