@@ -23,7 +23,7 @@ from sqlalchemy_utils import database_exists, create_database
 
 from beam_nuggets.compat import iteritems
 
-from google.cloud.sql.connector import Connector
+from google.cloud.sql.connector import Connector, IPTypes
 
 
 class SourceConfiguration(object):
@@ -253,19 +253,31 @@ class SqlAlchemyDB(object):
     def __init__(self, source_config):
         self._source = source_config
 
-        engine = create_engine(self._source.url)
-        if source_config.connection_name:
+        def init_connection_pool(connector: Connector):
+            # Python Connector database connection function
             def getconn():
                 conn = connector.connect(
-                    source_config.connection_name,
-                    self._source.drivername,
+                    self._source.connection_name,
+                    "pg8000",  # self._source.drivername,
                     user=self._source.username,
                     password=self._source.password,
-                    db=self._source.database
+                    db=self._source.database,
+                    ip_type=IPTypes.PUBLIC  # IPTypes.PRIVATE for private IP
                 )
                 return conn
 
-            engine = create_engine("postgresql+pg8000://", creator=getconn)
+            SQLALCHEMY_DATABASE_URL = "postgresql+pg8000://"
+
+            engine = create_engine(
+                SQLALCHEMY_DATABASE_URL, creator=getconn
+            )
+            return engine
+
+        # initialize Cloud SQL Python Connector
+        connector = Connector()
+
+        # create connection pool engine
+        engine = init_connection_pool(connector)
 
         self._SessionClass = sessionmaker(bind=engine)
         self._session = None  # will be set in self.start_session()
